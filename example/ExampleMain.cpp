@@ -91,7 +91,9 @@ void createFunctionExample(Module &module, const Twine &name) {
   Value *x2 = b.create<xd::Add32Op>(x1, sizeOf32, 11);
   Value *x3 = b.create<xd::CombineOp>(x2, x1);
   Value *x4 = b.create<xd::IExtOp>(b.getInt64Ty(), x3);
-  b.create<xd::WriteOp>(x4);
+  const auto *write = b.create<xd::WriteOp>(x4);
+  // Modify something we got from a const op
+  write->getData()->setName("x4");
 
   cast<xd::SizeOfOp>(sizeOf)->setSizeofType(b.getDoubleTy());
   cast<xd::Add32Op>(x2)->setExtra(7);

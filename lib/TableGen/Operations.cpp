@@ -159,7 +159,7 @@ unsigned OperationBase::getNumFullArguments() const {
 void OperationBase::emitArgumentAccessorDeclarations(llvm::raw_ostream &out,
                                                      FmtContext &fmt) const {
   for (const auto &arg : m_arguments) {
-    std::string defaultDeclaration = "$0 get$1();";
+    std::string defaultDeclaration = "$0 get$1()$3;";
     if (!arg.type->isVarArgList() && !arg.type->isImmutable()) {
       defaultDeclaration += R"(
         void set$1($0 $2);
@@ -167,7 +167,7 @@ void OperationBase::emitArgumentAccessorDeclarations(llvm::raw_ostream &out,
     }
 
     out << tgfmt(defaultDeclaration, &fmt, arg.type->getGetterCppType(),
-                 convertToCamelFromSnakeCase(arg.name, true), arg.name);
+                 convertToCamelFromSnakeCase(arg.name, true), arg.name, arg.type->isVarArgList() ? "" : " const");
   }
 }
 
@@ -181,8 +181,10 @@ void AccessorBuilder::emitAccessorDefinitions() const {
 void AccessorBuilder::emitGetterDefinition() const {
   std::string fromLlvm;
 
+  m_fmt.addSubst("const", "");
   if (!m_arg.type->isVarArgList()) {
     fromLlvm = tgfmt("getArgOperand($index)", &m_fmt);
+    m_fmt.addSubst("const", " const");
     if (auto *attr = dyn_cast<Attr>(m_arg.type))
       fromLlvm = tgfmt(attr->getFromLlvmValue(), &m_fmt, fromLlvm);
     else if (m_arg.type->isTypeArg())
@@ -198,7 +200,7 @@ void AccessorBuilder::emitGetterDefinition() const {
   m_fmt.addSubst("fromLlvm", fromLlvm);
 
   m_os << tgfmt(R"(
-      $cppType $_op::get$Name() {
+      $cppType $_op::get$Name()$const {
         return $fromLlvm;
       })",
                 &m_fmt);
